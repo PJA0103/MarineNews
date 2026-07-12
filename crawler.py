@@ -8,6 +8,8 @@ import time
 from dotenv import load_dotenv
 from google import genai
 
+from database import create_database, insert_news, count_news
+
 load_dotenv()
 
 client = genai.Client(
@@ -35,7 +37,17 @@ def get_article(url):
     news["highlight_en"] = ""
     news["highlight_zh"] = ""
     news["note"] = ""
-    news["hashtags"] = []
+    news["tags"] = {
+    "Country": [],
+    "Technology": [],
+    "Topic": [],
+    "Company": [],
+    "Organization": [],
+    "Project": [],
+    "Site": [],
+    "SeaArea": [],
+    "Custom": []
+    }
     
     return news
 
@@ -97,7 +109,7 @@ def generate_ai_analysis(content):
                 contents=f"""
                 You are a marine energy analyst.
 
-                Read the following marine energy news and return the result in EXACTLY the following format.
+                Analyze the following marine energy news and return the result in EXACTLY the following format.
 
                 [HIGHLIGHTS_EN]
                 - Bullet 1
@@ -118,12 +130,25 @@ def generate_ai_analysis(content):
                 - Observation 2
                 - Observation 3
 
-                [HASHTAGS]
-                #Tag1
-                #Tag2
-                #Tag3
-                #Tag4
-                #Tag5
+                [TAGS]
+                Country:
+                - Tag
+                Technology:
+                - Tag
+                Topic:
+                - Tag
+                Company:
+                - Tag
+                Organization:
+                - Tag
+                Project:
+                - Tag
+                Site:
+                - Tag
+                SeaArea:
+                - Tag
+                Custom:
+                - Tag
 
                 Requirements:
 
@@ -153,13 +178,99 @@ def generate_ai_analysis(content):
                 - If there is no obvious relevance to Taiwan, return exactly:
                 無
 
-                For HASHTAGS:
-                - Return 5–8 hashtags.
+                For TAGS:
+
+                Extract structured tags using the following categories.
+
+                Country:
+                - Extract ONLY countries where at least one of the following is true:
+
+                1. The project is physically located there.
+                2. The company is headquartered there.
+                3. A government, university, or organization from that country is a direct participant.
+                4. The article explicitly states that work is being carried out there.
+
+                - Do NOT include countries mentioned only:
+                - as market opportunities,
+                - as future deployment locations,
+                - as background information,
+                - as examples,
+                - in global comparisons,
+                - in report statistics,
+                - in maps or figures.
+
+                - Use standardized English country names.
+                - Never infer countries from seas, oceans, currents, organizations, or company names.
+                Examples:
+                Dutch company → Netherlands
+                British company → United Kingdom
+                US company → United States of America
+                
+                Kuroshio Current → NOT Japan
+                North Sea → NOT United Kingdom
+                Global market → None
+
+                Technology:
+                - Select ONLY from:
+                Wave Energy
+                Tidal Steam
+                Tidal Current
+                Ocean Current
+                OTEC
+                Salinity Gradient
+
+                Topic:
+                - Select ONLY from:
+                Policy
+                Regulation
+                Funding
+                Investment
+                Testing
+                Prototype
+                Operation
+                Commercialization
+                Research
+                Collaboration
+                Manufacturing
+                Grid Connection
+                Environmental Assessment
+                Permitting
+
+                Company:
+                - Extract official full company names.
+
+                Organization:
+                - Extract official full organization names.
+
+                Project:
+                - Extract the official full project or product name.
+                - Do not shorten names.
+                - Extract only the official name of an engineering project, demonstration project, commercial project, product, prototype, or funded programme.
+                - Do NOT output report titles, article titles, conference names, slogans, or publication titles.
+                - If none exists, return:
+                None
+
+                Site:
+                - Extract official testing site or demonstration site names.
+
+                SeaArea:
+                - Extract official names of oceans, seas, currents or marine regions.
+
+                Custom:
+                - Extract important technical terms that do not belong to the above categories.
+                - Examples:
+                TRL6
+                OpenFAST
+                Power Take Off
+                Dynamic Cable
+                EMEC
+
+                General rules:
                 - Use English only.
-                - One hashtag per line.
-                - No spaces.
-                - Use PascalCase (example: #WaveEnergy).
-                - Include technology, company, country/region, project, TRL, or other important concepts when appropriate.
+                - One tag per line.
+                - Do not invent information.
+                - If a category has no tags, leave it empty.
+
 
                 Return ONLY these four sections.
                 Do not output any additional text.
@@ -183,24 +294,44 @@ def parse_ai_response(text):
     highlights_en = parts[0].replace("[HIGHLIGHTS_EN]", "").strip()
     parts = parts[1].split("[NOTE]")
     highlights_zh = parts[0].strip()
-    parts = parts[1].split("[HASHTAGS]")
+    parts = parts[1].split("[TAGS]")
     note = parts[0].strip()
-    hashtags = parse_hashtags(parts[1])
+    tags = parse_tag_categories(parts[1])
     
-    return highlights_en, highlights_zh, note, hashtags
+    return highlights_en, highlights_zh, note, tags
 
-def parse_hashtags(text):
-    hashtags = []
+def parse_tag_categories(text):
+
+    categories = {
+        "Country": [],
+        "Technology": [],
+        "Topic": [],
+        "Company": [],
+        "Organization": [],
+        "Project": [],
+        "Site": [],
+        "SeaArea": [],
+        "Custom": []
+    }
+    current = None
     for line in text.splitlines():
         line = line.strip()
-        if line:
-            hashtags.append(line)
-    hashtags = list(dict.fromkeys(hashtags))
-            
-    return hashtags
-    
+        if not line:
+            continue
+        if line.endswith(":"):
+            name = line[:-1]
+            if name in categories:
+                current = name
+            continue
+        if line.startswith("-") and current:
+            categories[current].append(line[1:].strip())
+
+    return categories
+
+create_database()    
 news_list = get_news_list()
 all_news = []
+
 for item in news_list:
     news = get_article(item["url"])
     result = generate_ai_analysis(news["content"])
@@ -208,10 +339,11 @@ for item in news_list:
         news["highlight_en"],
         news["highlight_zh"],
         news["note"],
-        news["hashtags"]
+        news["tags"]
     ) = parse_ai_response(result)
     
     all_news.append(news)
+    insert_news(news)
 
 
 wb = Workbook()
@@ -224,7 +356,15 @@ headers = [
     "highlight_en",
     "highlight_zh",
     "note",
-    "hashtags",
+    "country",
+    "technology",
+    "topic",
+    "company",
+    "organization",
+    "project",
+    "site",
+    "sea_area",
+    "custom",
     "url",
     "author"
 ]
@@ -237,10 +377,18 @@ for news in all_news:
         news["highlight_en"],
         news["highlight_zh"],
         news["note"],
-        ", ".join(news["hashtags"]),
+        ", ".join(news["tags"]["Country"]),
+        ", ".join(news["tags"]["Technology"]),
+        ", ".join(news["tags"]["Topic"]),
+        ", ".join(news["tags"]["Company"]),
+        ", ".join(news["tags"]["Organization"]),
+        ", ".join(news["tags"]["Project"]),
+        ", ".join(news["tags"]["Site"]),
+        ", ".join(news["tags"]["SeaArea"]),
+        ", ".join(news["tags"]["Custom"]),
         news["url"],
         news["author"]
     ])
 
 wb.save("MarineNews.xlsx")
-print(f"完成，共輸出 {len(all_news)} 篇文章")
+count_news()

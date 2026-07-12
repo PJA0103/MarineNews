@@ -12,3 +12,6 @@ MarineNews.xlsx
 ## 虛擬環境(雖然應該不會有)
 .venv/
 venv/
+
+## database
+MarineNews.db
