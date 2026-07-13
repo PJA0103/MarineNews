@@ -3,12 +3,13 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
+from datetime import datetime
 
 import time
 from dotenv import load_dotenv
 from google import genai
 
-from database import create_database, insert_news, count_news
+from database import create_database, insert_news, count_news, news_exists, find_duplicate_urls, remove_duplicate_news, get_news_by_country
 
 load_dotenv()
 
@@ -31,7 +32,7 @@ def get_article(url):
     news = {}
     news["title"] = article.title.get_text(strip=True).replace(" - Offshore Energy","")
     news["url"] = url
-    news["publish_date"] = parts[0].strip().rstrip(",")
+    news["publish_date"] = format_date(parts[0].strip().rstrip(","))
     news["author"] = parts[1].strip()
     news["content"] = get_content(article)
     news["highlight_en"] = ""
@@ -50,6 +51,12 @@ def get_article(url):
     }
     
     return news
+
+def format_date(date_text):
+    return datetime.strptime(
+        date_text,
+        "%B %d, %Y"
+    ).strftime("%Y-%m-%d")
 
 def get_news_list():
 
@@ -214,7 +221,7 @@ def generate_ai_analysis(content):
                 - Select ONLY from:
                 Wave Energy
                 Tidal Steam
-                Tidal Current
+                Tidal Range
                 Ocean Current
                 OTEC
                 Salinity Gradient
@@ -283,9 +290,6 @@ def generate_ai_analysis(content):
             
             return response.text.strip()    
         except Exception as e:
-            print("AI API error")
-            print(e)
-            print("retry after 40 sec.")
             time.sleep(40)
 
 def parse_ai_response(text):
@@ -328,11 +332,24 @@ def parse_tag_categories(text):
 
     return categories
 
-create_database()    
+create_database() 
+remove_duplicate_news()   
 news_list = get_news_list()
 all_news = []
 
+existing_count = 0
+MAX_EXISTING = 3
+
 for item in news_list:
+    if news_exists(item["url"]):
+        existing_count += 1
+
+        if existing_count >= MAX_EXISTING:
+            print(f"{MAX_EXISTING} consecutive existing news found. Stop crawling.")
+            break
+
+        continue
+    existing_count = 0
     news = get_article(item["url"])
     result = generate_ai_analysis(news["content"])
     (
@@ -341,10 +358,10 @@ for item in news_list:
         news["note"],
         news["tags"]
     ) = parse_ai_response(result)
-    
+
     all_news.append(news)
     insert_news(news)
-
+    print("New:", news["title"])
 
 wb = Workbook()
 ws = wb.active
@@ -391,4 +408,7 @@ for news in all_news:
     ])
 
 wb.save("MarineNews.xlsx")
-count_news()
+print("Excel exported.")
+print(f"New articles: {len(all_news)}")
+
+
