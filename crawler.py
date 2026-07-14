@@ -53,15 +53,18 @@ def get_article(url):
     return news
 
 def format_date(date_text):
-    return datetime.strptime(
-        date_text,
-        "%B %d, %Y"
-    ).strftime("%Y-%m-%d")
+    date_text = date_text.replace(", posted", "")
+    date_text = date_text.strip().rstrip(",")
 
-def get_news_list():
+    dt = datetime.strptime(date_text, "%B %d, %Y")
+    return dt.strftime("%Y-%m-%d")
 
-    url = "https://www.offshore-energy.biz/marineenergy/"
+def get_news_list(page=1):
 
+    if page == 1:
+        url = "https://www.offshore-energy.biz/markets/marine-energy/"
+    else:
+        url = f"https://www.offshore-energy.biz/markets/marine-energy/page/{page}/"
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
@@ -332,83 +335,84 @@ def parse_tag_categories(text):
 
     return categories
 
-create_database() 
-remove_duplicate_news()   
-news_list = get_news_list()
-all_news = []
+if __name__ == "__main__":
+    create_database() 
+    remove_duplicate_news()   
+    news_list = get_news_list()
 
-existing_count = 0
-MAX_EXISTING = 3
+    all_news = []
 
-for item in news_list:
-    if news_exists(item["url"]):
-        existing_count += 1
-
-        if existing_count >= MAX_EXISTING:
-            print(f"{MAX_EXISTING} consecutive existing news found. Stop crawling.")
-            break
-
-        continue
     existing_count = 0
-    news = get_article(item["url"])
-    result = generate_ai_analysis(news["content"])
-    (
-        news["highlight_en"],
-        news["highlight_zh"],
-        news["note"],
-        news["tags"]
-    ) = parse_ai_response(result)
+    MAX_EXISTING = 3
 
-    all_news.append(news)
-    insert_news(news)
-    print("New:", news["title"])
+    for item in news_list:
+        if news_exists(item["url"]):
+            existing_count += 1
 
-wb = Workbook()
-ws = wb.active
-ws.title = "Marine News"
+            if existing_count >= MAX_EXISTING:
+                print(f"{MAX_EXISTING} consecutive existing news found. Stop crawling.")
+                break
 
-headers = [
-    "title",
-    "publish_date",
-    "highlight_en",
-    "highlight_zh",
-    "note",
-    "country",
-    "technology",
-    "topic",
-    "company",
-    "organization",
-    "project",
-    "site",
-    "sea_area",
-    "custom",
-    "url",
-    "author"
-]
-ws.append(headers)
+            continue
+        existing_count = 0
+        news = get_article(item["url"])
+        result = generate_ai_analysis(news["content"])
+        (
+            news["highlight_en"],
+            news["highlight_zh"],
+            news["note"],
+            news["tags"]
+        ) = parse_ai_response(result)
 
-for news in all_news:
-    ws.append([
-        news["title"],
-        news["publish_date"],
-        news["highlight_en"],
-        news["highlight_zh"],
-        news["note"],
-        ", ".join(news["tags"]["Country"]),
-        ", ".join(news["tags"]["Technology"]),
-        ", ".join(news["tags"]["Topic"]),
-        ", ".join(news["tags"]["Company"]),
-        ", ".join(news["tags"]["Organization"]),
-        ", ".join(news["tags"]["Project"]),
-        ", ".join(news["tags"]["Site"]),
-        ", ".join(news["tags"]["SeaArea"]),
-        ", ".join(news["tags"]["Custom"]),
-        news["url"],
-        news["author"]
-    ])
+        all_news.append(news)
+        insert_news(news)
+        print("New:", news["title"])
 
-wb.save("MarineNews.xlsx")
-print("Excel exported.")
-print(f"New articles: {len(all_news)}")
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Marine News"
 
+    headers = [
+        "title",
+        "publish_date",
+        "highlight_en",
+        "highlight_zh",
+        "note",
+        "country",
+        "technology",
+        "topic",
+        "company",
+        "organization",
+        "project",
+        "site",
+        "sea_area",
+        "custom",
+        "url",
+        "author"
+    ]
+    ws.append(headers)
+
+    for news in all_news:
+        ws.append([
+            news["title"],
+            news["publish_date"],
+            news["highlight_en"],
+            news["highlight_zh"],
+            news["note"],
+            ", ".join(news["tags"]["Country"]),
+            ", ".join(news["tags"]["Technology"]),
+            ", ".join(news["tags"]["Topic"]),
+            ", ".join(news["tags"]["Company"]),
+            ", ".join(news["tags"]["Organization"]),
+            ", ".join(news["tags"]["Project"]),
+            ", ".join(news["tags"]["Site"]),
+            ", ".join(news["tags"]["SeaArea"]),
+            ", ".join(news["tags"]["Custom"]),
+            news["url"],
+            news["author"]
+        ])
+
+    wb.save("MarineNews.xlsx")
+    print("Excel exported.")
+    print(f"New articles: {len(all_news)}")
 

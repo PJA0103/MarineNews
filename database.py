@@ -22,10 +22,17 @@ def create_database():
             sea_area TEXT,
             custom TEXT,
             url TEXT,
-            author TEXT
+            author TEXT,
+            is_read INTEGER DEFAULT 0
         )
     """)
-
+    try:
+        cursor.execute("""
+            ALTER TABLE news
+            ADD COLUMN is_read INTEGER DEFAULT 0
+        """)
+    except:
+        pass
     connectDB.commit()
 
     print("Database initialized.")
@@ -324,19 +331,47 @@ def get_all_topics():
 
     return sorted(topics)
 
+def mark_as_read(url):
+    connectDB = sqlite3.connect("MarineNews.db")
+    cursor = connectDB.cursor()
 
-print("===== Countries =====")
-for country in get_all_countries():
-    print(country)
+    cursor.execute("""
+        UPDATE news
+        SET is_read = 1
+        WHERE url = ?
+    """, (url,))
 
-print()
+    connectDB.commit()
+    connectDB.close()
 
-print("===== Technologies =====")
-for technology in get_all_technologies():
-    print(technology)
+def get_unread_news():
+    connectDB = sqlite3.connect("MarineNews.db")
+    cursor = connectDB.cursor()
 
-print()
+    cursor.execute("""
+        SELECT
+            title,
+            publish_date,
+            highlight_en,
+            highlight_zh,
+            note,
+            country,
+            technology,
+            topic,
+            company,
+            organization,
+            project,
+            site,
+            sea_area,
+            custom,
+            url,
+            author
+        FROM news
+        WHERE is_read = 0
+        ORDER BY publish_date DESC
+    """)
 
-print("===== Topics =====")
-for topic in get_all_topics():
-    print(topic)
+    rows = cursor.fetchall()
+    connectDB.close()
+
+    return rows

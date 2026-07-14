@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🌊 滿滿的新聞大平台~~~")
+st.title(" 不停滿溢的新聞大平台 ")
 
 # =========================
 # Sidebar
@@ -68,8 +68,6 @@ with st.sidebar:
 # Main Page
 # =========================
 
-st.header("Search Result")
-
 rows = search_news(
     country=countries,
     technology=technologies,
@@ -84,10 +82,10 @@ rows = search_news(
     end_date=end_date
 )
 
-st.write(f"### {len(rows)} Results")
+st.write(f"### 共有 {len(rows)} 條新聞")
 
 for row in rows:
-    with st.expander(f"📅 {row[1]} | {row[0]}"):
+    with st.expander(f"💾 {row[1]} | {row[0]}"):
 
         st.write(f"**Country:** {row[5]}")
         st.write(f"**Technology:** {row[6]}")
@@ -100,7 +98,7 @@ for row in rows:
         st.subheader("重點摘要")
         st.write(row[3])
 
-        st.subheader("Note")
+        st.subheader("💡Note")
         st.write(row[4])
         st.divider()
         st.link_button(
