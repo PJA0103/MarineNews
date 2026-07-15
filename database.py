@@ -188,6 +188,7 @@ def search_news(
     custom=None,
     start_date=None,
     end_date=None,
+    unread_only=False
     ):
     connectDB = sqlite3.connect("MarineNews.db")
     cursor = connectDB.cursor()
@@ -212,9 +213,10 @@ def search_news(
         author
     FROM news
     """
-
     conditions = []
     params = []
+    if unread_only:
+        conditions.append("is_read = 0")
 
     # OR conditions
     build_or_condition("country", country, conditions, params)
@@ -344,34 +346,32 @@ def mark_as_read(url):
     connectDB.commit()
     connectDB.close()
 
-def get_unread_news():
+def mark_all_as_read():
+
     connectDB = sqlite3.connect("MarineNews.db")
     cursor = connectDB.cursor()
 
     cursor.execute("""
-        SELECT
-            title,
-            publish_date,
-            highlight_en,
-            highlight_zh,
-            note,
-            country,
-            technology,
-            topic,
-            company,
-            organization,
-            project,
-            site,
-            sea_area,
-            custom,
-            url,
-            author
+        UPDATE news
+        SET is_read = 1
+    """)
+
+    connectDB.commit()
+    connectDB.close()
+
+def count_read_status():
+
+    connectDB = sqlite3.connect("MarineNews.db")
+    cursor = connectDB.cursor()
+
+    cursor.execute("""
+        SELECT is_read, COUNT(*)
         FROM news
-        WHERE is_read = 0
-        ORDER BY publish_date DESC
+        GROUP BY is_read
     """)
 
     rows = cursor.fetchall()
+
     connectDB.close()
 
     return rows

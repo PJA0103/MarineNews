@@ -17,6 +17,15 @@ client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
 )
 
+allowed_technologies = [
+    "Wave Energy",
+    "Tidal Stream",
+    "Tidal Range",
+    "Ocean Current",
+    "OTEC",
+    "None"
+    ]
+
 def get_article(url):
 
     headers = {
@@ -223,11 +232,15 @@ def generate_ai_analysis(content):
                 Technology:
                 - Select ONLY from:
                 Wave Energy
-                Tidal Steam
+                Tidal Stream
                 Tidal Range
                 Ocean Current
                 OTEC
-                Salinity Gradient
+                None
+                Rules:
+                - If the article is not directly related to marine energy technologies listed above, return ["None"].
+                - Do NOT create new categories.
+                - Do NOT include offshore wind, solar, hydrogen, batteries, or general ocean engineering.
 
                 Topic:
                 - Select ONLY from:
@@ -350,7 +363,7 @@ if __name__ == "__main__":
             existing_count += 1
 
             if existing_count >= MAX_EXISTING:
-                print(f"{MAX_EXISTING} consecutive existing news found. Stop crawling.")
+                print(f"新聞更新完成")
                 break
 
             continue
@@ -366,53 +379,5 @@ if __name__ == "__main__":
 
         all_news.append(news)
         insert_news(news)
-        print("New:", news["title"])
 
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Marine News"
-
-    headers = [
-        "title",
-        "publish_date",
-        "highlight_en",
-        "highlight_zh",
-        "note",
-        "country",
-        "technology",
-        "topic",
-        "company",
-        "organization",
-        "project",
-        "site",
-        "sea_area",
-        "custom",
-        "url",
-        "author"
-    ]
-    ws.append(headers)
-
-    for news in all_news:
-        ws.append([
-            news["title"],
-            news["publish_date"],
-            news["highlight_en"],
-            news["highlight_zh"],
-            news["note"],
-            ", ".join(news["tags"]["Country"]),
-            ", ".join(news["tags"]["Technology"]),
-            ", ".join(news["tags"]["Topic"]),
-            ", ".join(news["tags"]["Company"]),
-            ", ".join(news["tags"]["Organization"]),
-            ", ".join(news["tags"]["Project"]),
-            ", ".join(news["tags"]["Site"]),
-            ", ".join(news["tags"]["SeaArea"]),
-            ", ".join(news["tags"]["Custom"]),
-            news["url"],
-            news["author"]
-        ])
-
-    wb.save("MarineNews.xlsx")
-    print("Excel exported.")
-    print(f"New articles: {len(all_news)}")
 

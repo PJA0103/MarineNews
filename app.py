@@ -4,7 +4,8 @@ from database import (
     get_all_countries,
     get_all_technologies,
     get_all_topics,
-    search_news
+    search_news,
+    mark_as_read
 )
 
 st.set_page_config(
@@ -13,60 +14,60 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title(" 不停滿溢的新聞大平台 ")
+st.title(" 不停溢流的大平台 ")
 
 # =========================
 # Sidebar
 # =========================
 
+# show_unread_only = st.sidebar.checkbox(
+#     "Unread only",
+#     value=True
+# )
+
 with st.sidebar:
-
     st.header("Filters")
-
     countries = st.multiselect(
         "Country",
         get_all_countries()
     )
-
     technologies = st.multiselect(
         "Technology",
         get_all_technologies()
     )
-
     topics = st.multiselect(
         "Topic",
         get_all_topics()
     )
-
     st.divider()
-
     start_date = st.date_input(
         "Start Date",
         value=None
     )
-
     end_date = st.date_input(
         "End Date",
         value=None
     )
-
     st.divider()
 
     company = st.text_input("Company")
-
     organization = st.text_input("Organization")
-
     project = st.text_input("Project")
-
     site = st.text_input("Site")
-
     sea_area = st.text_input("Sea Area")
-
     custom = st.text_input("Custom")
 
 # =========================
-# Main Page
+# Main Page  
 # =========================
+
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    show_unread_only = st.toggle(
+        "Unread Only",
+        value=True
+    )
 
 rows = search_news(
     country=countries,
@@ -79,12 +80,19 @@ rows = search_news(
     sea_area=sea_area,
     custom=custom,
     start_date=start_date,
-    end_date=end_date
+    end_date=end_date,
+    unread_only=show_unread_only
 )
 
-st.write(f"### 共有 {len(rows)} 條新聞")
+with col2:
+    st.metric(
+        "News",
+        len(rows)
+    )
 
-for row in rows:
+for idx, row in enumerate(rows):
+    news_url = row[14]
+    is_read_status = row[15]
     with st.expander(f"💾 {row[1]} | {row[0]}"):
 
         st.write(f"**Country:** {row[5]}")
@@ -101,7 +109,22 @@ for row in rows:
         st.subheader("💡Note")
         st.write(row[4])
         st.divider()
-        st.link_button(
-            "🔗 Original Article",
-            row[14]
-        )
+
+        if is_read_status != 1 and is_read_status != "1":
+            btn_col1, btn_col2 = st.columns([1,1])
+            with btn_col1:
+                st.link_button(
+                    "🔗 Original Article",
+                    row[14]
+                )
+            with btn_col2:
+                if st.button("已讀", key=f"read_btn_{idx}"):
+                    mark_as_read(news_url)
+                    st.toast("標記為已讀")
+                    st.rerun()
+        else:
+            st.link_button(
+                "🔗 Original Article",
+                row[14]
+                )
+
