@@ -375,3 +375,38 @@ def count_read_status():
     connectDB.close()
 
     return rows
+
+def export_excel(rows):
+    wb = workbook()
+    ws = wb.active
+    ws.title = "Marine News"
+    
+    headers =[
+        "Title",
+        "Publish Date",
+        "Highlight EN",
+        "Highlight ZH",
+        "Note",
+        "Country",
+        "Technology",
+        "Topic",
+        "Company",
+        "Organization",
+        "Project",
+        "Site",
+        "Sea Area",
+        "Custom",
+        "URL",
+        "Author"        
+    ]
+    
+    ws.append(headers)
+    for row in rows:
+        ws.append(row)
+        
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    return output
+    

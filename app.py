@@ -5,8 +5,13 @@ from database import (
     get_all_technologies,
     get_all_topics,
     search_news,
-    mark_as_read
+    mark_as_read,
+    export_excel
 )
+
+from openpyxl import workbook
+from io import BytesIO
+from datetime import datetime
 
 st.set_page_config(
     page_title="Marine Energy Intelligence",
@@ -61,7 +66,8 @@ with st.sidebar:
 # Main Page  
 # =========================
 
-col1, col2 = st.columns([1, 1])
+# col1, col2 = st.columns([1, 1])
+col1, col2, col3 = st.columns([1, 2, 1])
 
 with col1:
     show_unread_only = st.toggle(
@@ -93,7 +99,7 @@ with col2:
 for idx, row in enumerate(rows):
     news_url = row[14]
     is_read_status = row[15]
-    with st.expander(f"💾 {row[1]} | {row[0]}"):
+    with st.expander(f"🧾 {row[1]} | {row[0]}"):
 
         st.write(f"**Country:** {row[5]}")
         st.write(f"**Technology:** {row[6]}")
@@ -128,3 +134,11 @@ for idx, row in enumerate(rows):
                 row[14]
                 )
 
+with col3:
+    now = datetime.now().strftime("%Y%m%d_%H%M")
+    st.download_button(
+        label=" 💾 匯出excel",
+        data=export_excel(rows),
+        file_name=f"MarineNews_{now}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
