@@ -9,7 +9,7 @@ from database import (
     export_excel
 )
 
-from openpyxl import workbook
+from openpyxl import Workbook
 from io import BytesIO
 from datetime import datetime
 
@@ -67,7 +67,7 @@ with st.sidebar:
 # =========================
 
 # col1, col2 = st.columns([1, 1])
-col1, col2, col3 = st.columns([1, 2, 1])
+col1, col2, col3 = st.columns([6, 2, 2])
 
 with col1:
     show_unread_only = st.toggle(
@@ -137,7 +137,7 @@ for idx, row in enumerate(rows):
 with col3:
     now = datetime.now().strftime("%Y%m%d_%H%M")
     st.download_button(
-        label=" 💾 匯出excel",
+        label="匯出excel",
         data=export_excel(rows),
         file_name=f"MarineNews_{now}.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

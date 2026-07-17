@@ -1,4 +1,6 @@
 import sqlite3
+from openpyxl import Workbook
+from io import BytesIO
 
 def create_database():
     connectDB = sqlite3.connect("MarineNews.db")
@@ -377,7 +379,7 @@ def count_read_status():
     return rows
 
 def export_excel(rows):
-    wb = workbook()
+    wb = Workbook()
     ws = wb.active
     ws.title = "Marine News"
     
