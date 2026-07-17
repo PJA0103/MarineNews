@@ -24,6 +24,7 @@
 - 多條件搜尋
 - 已讀／未讀管理
 - 一鍵啟動程式
+- 匯出目前查詢結果(Excel)
 
 ---
 
@@ -57,9 +58,7 @@ MarineNews/
 ├── database.py         # SQLite 操作
 ├── app.py              # Streamlit 網頁介面
 ├── startup.bat         # 一鍵啟動
-│
 ├── MarineNews.db       # 新聞資料庫
-│
 └── README.md
 ```
 
