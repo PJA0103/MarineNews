@@ -411,4 +411,41 @@ def export_excel(rows):
     output.seek(0)
     
     return output
-    
+
+def news_needs_update(url):
+    connectDB = sqlite3.connect("MarineNews.db")
+    cursor = connectDB.cursor()
+
+    cursor.execute("""
+        SELECT publish_date
+        FROM news
+        WHERE url = ?
+    """, (url,))
+
+    row = cursor.fetchone()
+    connectDB.close()
+
+    if row is None:
+        return False
+
+    return not row[0] 
+
+def update_news(news):
+    connectDB = sqlite3.connect("MarineNews.db")
+    cursor = connectDB.cursor()
+
+    cursor.execute("""
+        UPDATE news
+        SET
+            publish_date = ?,
+            author = ?
+        WHERE url = ?
+    """, (
+        news["publish_date"],
+        news["author"],
+        news["url"]
+    ))
+
+    connectDB.commit()
+    connectDB.close()
+

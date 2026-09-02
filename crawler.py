@@ -1,11 +1,13 @@
 import os
-
 import requests
+import time
+import json
+import random
+import re
+
 from bs4 import BeautifulSoup
 from openpyxl import Workbook
 from datetime import datetime
-
-import time
 from dotenv import load_dotenv
 from google import genai
 
@@ -33,16 +35,29 @@ def get_article(url):
     }
     response = requests.get(url, headers=headers)
     article = BeautifulSoup(response.text, "html5lib")
-    
-    meta = article.find("div", class_="article-meta__info")
-    meta_text = " ".join(meta.get_text().split())
-    parts = meta_text.split("by")
- 
+     
     news = {}
     news["title"] = article.title.get_text(strip=True).replace(" - Offshore Energy","")
     news["url"] = url
-    news["publish_date"] = format_date(parts[0].strip().rstrip(","))
-    news["author"] = parts[1].strip()
+    script = article.find("script", type="application/ld+json")
+    meta = article.find("div", class_="article-meta__info")
+
+    if meta:
+        date_text = " ".join(meta.get_text().split())
+        news["publish_date"] = format_date(date_text)
+    else:
+        news["publish_date"] = ""
+
+    if script:
+        try:
+            data = json.loads(script.string)
+            article_info = data["@graph"][0]
+            news["author"] = article_info["author"]["name"]
+        except Exception:
+            news["author"] = ""
+    else:
+        news["author"] = ""
+
     news["content"] = get_content(article)
     news["highlight_en"] = ""
     news["highlight_zh"] = ""
@@ -62,11 +77,12 @@ def get_article(url):
     return news
 
 def format_date(date_text):
-    date_text = date_text.replace(", posted", "")
-    date_text = date_text.strip().rstrip(",")
-
-    dt = datetime.strptime(date_text, "%B %d, %Y")
-    return dt.strftime("%Y-%m-%d")
+    match = re.search(r'([A-Za-z]+\s+\d{1,2},\s+\d{4})', date_text)
+    if match:
+        clean_date = match.group(1)
+        dt = datetime.strptime(clean_date, "%B %d, %Y")
+        return dt.strftime("%Y-%m-%d")
+    return ""
 
 def get_news_list(page=1):
 
@@ -95,10 +111,10 @@ def get_news_list(page=1):
 
 def get_content(article):
     content = article.find("div", class_="wp-content")
+    if not content:
+        return ""
     content = clean_content(content)
-
     paragraphs = content.find_all("p")
-
     texts = []
 
     for p in paragraphs:
@@ -110,11 +126,13 @@ def get_content(article):
     return "\n\n".join(texts)
 
 def clean_content(content):
+    if not content:
+        return None
     for script in content.find_all("script"):
         script.decompose()
     
-    for sectcion in content.find_all("section"):
-        sectcion.decompose()
+    for section in content.find_all("section"):
+        section.decompose()
     
     return content
 
@@ -350,7 +368,6 @@ def parse_tag_categories(text):
 
 if __name__ == "__main__":
     create_database() 
-    remove_duplicate_news()   
     news_list = get_news_list()
 
     all_news = []

@@ -25,11 +25,6 @@ st.title(" 不停溢流的大平台 ")
 # Sidebar
 # =========================
 
-# show_unread_only = st.sidebar.checkbox(
-#     "Unread only",
-#     value=True
-# )
-
 with st.sidebar:
     st.header("Filters")
     countries = st.multiselect(
@@ -66,7 +61,6 @@ with st.sidebar:
 # Main Page  
 # =========================
 
-# col1, col2 = st.columns([1, 1])
 col1, col2, col3 = st.columns([6, 2, 2])
 
 with col1:
@@ -116,23 +110,28 @@ for idx, row in enumerate(rows):
         st.write(row[4])
         st.divider()
 
-        if is_read_status != 1 and is_read_status != "1":
-            btn_col1, btn_col2 = st.columns([1,1])
+        if show_unread_only:
+            btn_col1, btn_col2 = st.columns([1, 1])
+
             with btn_col1:
                 st.link_button(
                     "🔗 Original Article",
-                    row[14]
+                    news_url
                 )
+
             with btn_col2:
-                if st.button("已讀", key=f"read_btn_{idx}"):
+                if st.button(
+                    "已讀",
+                    key=f"read_btn_{idx}"
+                ):
                     mark_as_read(news_url)
                     st.toast("標記為已讀")
                     st.rerun()
         else:
             st.link_button(
                 "🔗 Original Article",
-                row[14]
-                )
+                news_url
+            )
 
 with col3:
     now = datetime.now().strftime("%Y%m%d_%H%M")
