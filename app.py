@@ -19,6 +19,18 @@ st.set_page_config(
     layout="wide"
 )
 
+@st.cache_data
+def cached_get_countries():
+    return get_all_countries()
+
+@st.cache_data
+def cached_get_technologies():
+    return get_all_technologies()
+
+@st.cache_data
+def cached_get_topics():
+    return get_all_topics()
+
 st.title(" 不停溢流的大平台 ")
 
 # =========================

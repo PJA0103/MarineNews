@@ -28,13 +28,10 @@ def create_database():
             is_read INTEGER DEFAULT 0
         )
     """)
-    try:
-        cursor.execute("""
-            ALTER TABLE news
-            ADD COLUMN is_read INTEGER DEFAULT 0
-        """)
-    except:
-        pass
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_publish_date ON news(publish_date)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_is_read_publish_date ON news(is_read, publish_date DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_url ON news(url)")
+
     connectDB.commit()
 
     print("Database initialized.")
@@ -107,6 +104,7 @@ def count_news():
     count = cursor.fetchone()[0]
 
     connectDB.close()
+    return count
 
 def find_duplicate_urls():
     connectDB = sqlite3.connect("MarineNews.db")
