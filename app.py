@@ -41,15 +41,15 @@ with st.sidebar:
     st.header("Filters")
     countries = st.multiselect(
         "Country",
-        get_all_countries()
+        cached_get_countries()
     )
     technologies = st.multiselect(
         "Technology",
-        get_all_technologies()
+        cached_get_technologies()
     )
     topics = st.multiselect(
         "Topic",
-        get_all_topics()
+        cached_get_topics()
     )
     st.divider()
     start_date = st.date_input(
